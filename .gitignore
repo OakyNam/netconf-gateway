@@ -1,5 +1,9 @@
-# Local config (proxy map)
-config/proxy_map.json
+# Logging config (local, not for version control)
+config/logging_config.json
+# Local config (proxy, client, db)
+config/proxy_config.json
+config/client_config.json
+config/db_client_config.json
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

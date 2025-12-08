@@ -4,7 +4,6 @@ Juniper NETCONF client implementation.
 
 from app.clients.base_client import BaseNCCClient
 
-from app.clients.proxy_factory import ProxyFactory
 
 class JuniperNCCClient(BaseNCCClient):
     def __init__(self, host, owner=None):

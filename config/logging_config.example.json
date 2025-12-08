@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "disable_existing_loggers": false,
+  "formatters": {
+    "default": {
+      "format": "{time:YYYY-MM-DD HH:mm:ss} | {level} | {name}:{function}:{line} - {message}",
+      "datefmt": "%Y-%m-%d %H:%M:%S"
+    }
+  },
+  "handlers": {
+    "console": {
+      "class": "logging.StreamHandler",
+      "level": "INFO",
+      "formatter": "default",
+      "stream": "ext://sys.stdout"
+    },
+    "file": {
+      "class": "logging.FileHandler",
+      "level": "DEBUG",
+      "formatter": "default",
+      "filename": "logs/app.log",
+      "mode": "a"
+    },
+    "remote": {
+      "class": "logging.handlers.SocketHandler",
+      "level": "INFO",
+      "formatter": "default",
+      "host": "your.remote.log.server",  // Set to your remote log server address
+      "port": 9020  // Set to your remote log server port
+    }
+  },
+  "root": {
+    "level": "INFO",
+    "handlers": ["console", "file", "remote"]
+  },
+  "loggers": {
+    "uvicorn": {
+      "level": "WARNING"
+    },
+    "sqlalchemy.engine": {
+      "level": "WARNING"
+    }
+  }
+}

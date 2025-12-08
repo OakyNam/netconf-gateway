@@ -5,19 +5,19 @@ Abstract base class for NETCONF clients to enforce function name standardization
 from abc import ABC, abstractmethod
 from ncclient import manager
 
-from app.clients.proxy_factory import ProxyFactory
+from app.factories.proxy_factory import ProxyFactory
 
 from decouple import config
 
 class BaseNCCClient(ABC):
-    def __init__(self, host, owner):
+    def __init__(self, host, router_info):
         self.host = host
         self.port = 22
-        self.owner = owner
+        self.router_info = router_info
         self.session = None
 
     def connect(self):
-        proxy = ProxyFactory.get_proxy(self.owner)
+        proxy = ProxyFactory.get_proxy(self.router_info)
         channel = proxy.get_channel(self.host, self.port)
         self.session = manager.connect(
             host=self.host,
