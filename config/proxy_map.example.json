@@ -1,0 +1,10 @@
+{
+  "acme": "proxy-acme.fake.net",
+  "globex": "proxy-globex.fake.net",
+  "initech": "proxy-initech.fake.net",
+  "umbrella": "proxy-umbrella.fake.net",
+  "wayne": "proxy-wayne.fake.net",
+  "stark": "proxy-stark.fake.net",
+  "wonka": "proxy-wonka.fake.net",
+  "default": "proxy-default.fake.net"
+}
