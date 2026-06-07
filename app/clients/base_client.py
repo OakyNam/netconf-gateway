@@ -39,6 +39,15 @@ class BaseNCCClient(ABC):
         except (TypeError, ValueError):
             return default
 
+    @staticmethod
+    def _netconf_hostkey_verify() -> bool:
+        return str(config("ROUTER_NETCONF_HOSTKEY_VERIFY", default="true")).lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
+
     def connect(self) -> None:
         if self.session is not None:
             return
@@ -49,7 +58,7 @@ class BaseNCCClient(ABC):
             self.session = manager.connect(
                 host=self.host,
                 port=self.port,
-                hostkey_verify=False,
+                hostkey_verify=self._netconf_hostkey_verify(),
                 allow_agent=False,
                 look_for_keys=False,
                 sock=sock,
