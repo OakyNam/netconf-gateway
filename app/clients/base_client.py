@@ -70,6 +70,9 @@ class BaseNCCClient(ABC):
         try:
             self.ssh_client = paramiko.SSHClient()
             self.ssh_client.load_system_host_keys()
+            known_hosts_path = str(config("ROUTER_KNOWN_HOSTS_PATH", default="")).strip()
+            if known_hosts_path:
+                self.ssh_client.load_host_keys(known_hosts_path)
             self.ssh_client.set_missing_host_key_policy(paramiko.RejectPolicy())
             proxy = self._get_proxy()
             sock = proxy.get_channel(self.host, self.ssh_port) if proxy else None
@@ -132,7 +135,7 @@ class BaseNCCClient(ABC):
         return {"command": command, "output": output}
 
     def configure_interface(self, interface_name: str, config_xml: str) -> Dict[str, str]:
-        _ = interface_name
+        logger.info(f"Applying interface configuration for {interface_name} on {self.host}")
         return self.set_config(config_xml)
 
     def get_bgp(self) -> str:

@@ -4,6 +4,7 @@ DB client utilities for device metadata lookup.
 
 import json
 import os
+import re
 from typing import Any, Dict, Optional
 
 from decouple import config
@@ -24,6 +25,13 @@ def _resolve_config_path() -> str:
 
 
 DB_CLIENT_CONFIG_PATH = _resolve_config_path()
+
+
+def _validate_identifier(name: str, label: str) -> str:
+    if not re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", name):
+        raise ConfigNotFoundError(f"Invalid {label} in DB config: {name}")
+    return name
+
 
 _engine = None
 _session_factory = None
@@ -70,8 +78,8 @@ def get_device_info(search_value: Any) -> Optional[Dict[str, Any]]:
         with open(DB_CLIENT_CONFIG_PATH, "r", encoding="utf-8") as file:
             cfg = json.load(file)
 
-        table_name = cfg.get("table")
-        search_column = cfg.get("search_column")
+        table_name = _validate_identifier(str(cfg.get("table", "")), "table")
+        search_column = _validate_identifier(str(cfg.get("search_column", "")), "search_column")
         if not table_name or not search_column:
             raise ConfigNotFoundError(
                 "Both 'table' and 'search_column' must be specified in db_client_config.json"
