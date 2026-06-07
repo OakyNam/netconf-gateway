@@ -8,7 +8,14 @@ import logging
 import logging.config
 from loguru import logger
 
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), '../config/logging_config.json')
+def _resolve_logging_config_path() -> str:
+    configured = os.path.join(os.path.dirname(__file__), "../config/logging_config.json")
+    if os.path.exists(configured):
+        return configured
+    return configured.replace("logging_config.json", "logging_config.example.json")
+
+
+CONFIG_PATH = _resolve_logging_config_path()
 
 class InterceptHandler(logging.Handler):
     """

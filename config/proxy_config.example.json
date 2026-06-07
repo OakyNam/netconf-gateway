@@ -7,9 +7,7 @@
     "us-west:backup": "proxy-west-backup.example.net",
     "eu-central:primary": "proxy-eu-primary.example.net",
     "eu-central:backup": "proxy-eu-backup.example.net",
-    "asia:primary": "proxy-asia-primary.example.net",
-    "asia:*": "proxy-asia-default.example.net",
     "*:admin": "proxy-global-admin.example.net",
-    "*:*": "proxy-global-default.example.net"
+    "default": ""
   }
 }

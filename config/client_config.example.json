@@ -7,8 +7,6 @@
     "iox:*": "app.clients.nccclient_iox.IOXNCCClient",
     "adva:*": "app.clients.nccclient_adva.AdvaFSP114ProNCCClient",
     "ceina:*": "app.clients.nccclient_ceina.CeinaNCCClient",
-    "sros:20.7.R1": "app.clients.nccclient_alcatel.AlcatelNCCClient",
-    "sros:21.2.R2": "app.clients.nccclient_alcatel.AlcatelNCCClient",
-    "sros:*": "app.clients.nccclient_alcatel.AlcatelNCCClient"
+    "default": "app.clients.nccclient_ios.IOSNCCClient"
   }
 }
