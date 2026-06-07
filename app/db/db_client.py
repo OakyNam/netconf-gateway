@@ -9,7 +9,7 @@ from typing import Any, Dict, Optional
 
 from decouple import config
 from loguru import logger
-from sqlalchemy import create_engine, text
+from sqlalchemy import bindparam, column, create_engine, select, table
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.errors import ConfigNotFoundError, DatabaseError
@@ -80,14 +80,14 @@ def get_device_info(search_value: Any) -> Optional[Dict[str, Any]]:
 
         table_name = _validate_identifier(str(cfg.get("table", "")), "table")
         search_column = _validate_identifier(str(cfg.get("search_column", "")), "search_column")
-        if not table_name or not search_column:
-            raise ConfigNotFoundError(
-                "Both 'table' and 'search_column' must be specified in db_client_config.json"
-            )
-
         session = get_session()
-        query = text(
-            f"SELECT * FROM {table_name} WHERE {search_column} = :search_value LIMIT 1"
+        db_table = table(table_name)
+        db_column = column(search_column)
+        query = (
+            select(db_table)
+            .where(db_column == bindparam("search_value"))
+            .select_from(db_table)
+            .limit(1)
         )
         result = session.execute(query, {"search_value": search_value})
         row = result.fetchone()

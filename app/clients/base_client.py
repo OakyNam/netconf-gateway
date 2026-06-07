@@ -13,6 +13,8 @@ from ncclient import manager
 from app.errors import GatewayError
 from app.factories.proxy_factory import ProxyFactory
 
+TRUTHY_VALUES = {"1", "true", "yes", "on"}
+
 
 class BaseNCCClient(ABC):
     def __init__(self, host: str, router_info: Dict[str, Any]) -> None:
@@ -41,12 +43,7 @@ class BaseNCCClient(ABC):
 
     @staticmethod
     def _netconf_hostkey_verify() -> bool:
-        return str(config("ROUTER_NETCONF_HOSTKEY_VERIFY", default="true")).lower() in {
-            "1",
-            "true",
-            "yes",
-            "on",
-        }
+        return str(config("ROUTER_NETCONF_HOSTKEY_VERIFY", default="true")).lower() in TRUTHY_VALUES
 
     def connect(self) -> None:
         if self.session is not None:
@@ -82,6 +79,10 @@ class BaseNCCClient(ABC):
             known_hosts_path = str(config("ROUTER_KNOWN_HOSTS_PATH", default="")).strip()
             if known_hosts_path:
                 self.ssh_client.load_host_keys(known_hosts_path)
+            else:
+                logger.warning(
+                    "ROUTER_KNOWN_HOSTS_PATH is not set; only system known_hosts will be used"
+                )
             self.ssh_client.set_missing_host_key_policy(paramiko.RejectPolicy())
             proxy = self._get_proxy()
             sock = proxy.get_channel(self.host, self.ssh_port) if proxy else None
