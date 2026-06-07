@@ -18,8 +18,8 @@ class BaseNCCClient(ABC):
     def __init__(self, host: str, router_info: Dict[str, Any]) -> None:
         self.host = host
         self.router_info = router_info
-        self.port = int(router_info.get("netconf_port", 830))
-        self.ssh_port = int(router_info.get("ssh_port", 22))
+        self.port = self._safe_port(router_info.get("netconf_port"), 830)
+        self.ssh_port = self._safe_port(router_info.get("ssh_port"), 22)
         self.session = None
         self.ssh_client: Optional[paramiko.SSHClient] = None
 
@@ -33,13 +33,11 @@ class BaseNCCClient(ABC):
         return {"username": user, "password": passwd}
 
     @staticmethod
-    def _use_relaxed_hostkey_policy() -> bool:
-        return str(config("ROUTER_SSH_AUTO_ADD_HOSTKEY", default="false")).lower() in {
-            "1",
-            "true",
-            "yes",
-            "on",
-        }
+    def _safe_port(value: Any, default: int) -> int:
+        try:
+            return int(value) if value is not None else default
+        except (TypeError, ValueError):
+            return default
 
     def connect(self) -> None:
         if self.session is not None:
@@ -72,10 +70,7 @@ class BaseNCCClient(ABC):
         try:
             self.ssh_client = paramiko.SSHClient()
             self.ssh_client.load_system_host_keys()
-            if self._use_relaxed_hostkey_policy():
-                self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            else:
-                self.ssh_client.set_missing_host_key_policy(paramiko.RejectPolicy())
+            self.ssh_client.set_missing_host_key_policy(paramiko.RejectPolicy())
             proxy = self._get_proxy()
             sock = proxy.get_channel(self.host, self.ssh_port) if proxy else None
             auth = self._credentials()
@@ -109,16 +104,22 @@ class BaseNCCClient(ABC):
 
     def get_config(self) -> str:
         self.connect()
+        if self.session is None:
+            raise GatewayError("NETCONF session is not available")
         reply = self.session.get_config(source="running")
         return str(reply.xml)
 
     def set_config(self, config_data: str) -> Dict[str, str]:
         self.connect()
+        if self.session is None:
+            raise GatewayError("NETCONF session is not available")
         reply = self.session.edit_config(target="running", config=config_data)
         return {"status": "ok", "reply": str(reply.xml)}
 
     def get_operational_state(self) -> str:
         self.connect()
+        if self.session is None:
+            raise GatewayError("NETCONF session is not available")
         reply = self.session.get()
         return str(reply.xml)
 
@@ -136,6 +137,8 @@ class BaseNCCClient(ABC):
 
     def get_bgp(self) -> str:
         self.connect()
+        if self.session is None:
+            raise GatewayError("NETCONF session is not available")
         bgp_ns = str(
             self.router_info.get("bgp_namespace", "http://openconfig.net/yang/bgp")
         )
