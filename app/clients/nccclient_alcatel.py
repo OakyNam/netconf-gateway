@@ -1,19 +1,14 @@
-"""
-Alcatel NETCONF client implementation.
-"""
+"""Alcatel NETCONF client implementation."""
+
+from typing import Any, Dict
 
 from app.clients.base_client import BaseNCCClient
 
 
 class AlcatelNCCClient(BaseNCCClient):
-    def __init__(self, host, owner=None):
-        super().__init__(host, owner)
-        self.port = 830
+    def __init__(self, host: str, router_info: Dict[str, Any]):
+        super().__init__(host, router_info)
+        self.port = int(router_info.get("netconf_port", 830))
 
-    def get_config(self):
-        # Implement Alcatel-specific get_config logic here
-        pass
-
-    def set_config(self, config_data):
-        # Implement Alcatel-specific set_config logic here
-        pass
+    def get_show_interface_command(self, interface_name=None) -> str:
+        return f"show router interface {interface_name}" if interface_name else "show router interface"

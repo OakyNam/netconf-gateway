@@ -1,76 +1,56 @@
-
-
-"""
-Proxy Factory
---------------
-Factory for creating NETCONF proxies based on configuration. All public methods are type hinted and include Google-style docstrings. Logging is included for major actions.
-"""
+"""Factory for creating proxy clients from mapping config."""
 
 import json
 import os
-from typing import Any
-from app.errors import ProxyMappingError
+from typing import Any, Dict, Optional
+
 from loguru import logger
 
-# Config path for proxy mapping
-PROXY_CONFIG_PATH = os.getenv('PROXY_CONFIG_PATH', os.path.join(os.path.dirname(__file__), '../../config/proxy_map.json'))
+from app.clients.proxy_client import ProxyClient
+from app.errors import ProxyMappingError
+
+def _resolve_config_path() -> str:
+    configured = os.getenv(
+        "PROXY_CONFIG_PATH",
+        os.path.join(os.path.dirname(__file__), "../../config/proxy_config.json"),
+    )
+    if os.path.exists(configured):
+        return configured
+    return configured.replace("proxy_config.json", "proxy_config.example.json")
+
+
+PROXY_CONFIG_PATH = _resolve_config_path()
+
 
 class ProxyFactory:
-    """
-    Factory for creating NETCONF proxies based on configuration.
-    """
     @staticmethod
-    def get_proxy(device: str) -> Any:
-        """
-        Get a NETCONF proxy for the specified device.
-
-        Args:
-            device (str): Device identifier.
-
-        Returns:
-            Any: NETCONF proxy instance.
-
-        Raises:
-            ProxyMappingError: If proxy mapping fails.
-        """
-        logger.info(f"Creating NETCONF proxy for device={device}")
+    def get_proxy(router_info: Dict[str, Any]) -> Optional[ProxyClient]:
         try:
-            # router_info should be fetched from somewhere, e.g., a DB or config. Here, we assume a placeholder.
-            router_info = {"owner": device}  # Placeholder: replace with real lookup
-
             if not os.path.exists(PROXY_CONFIG_PATH):
-                logger.error(f"Proxy map config file not found: {PROXY_CONFIG_PATH}")
-                raise ProxyMappingError(f"Proxy map config file not found: {PROXY_CONFIG_PATH}")
-            with open(PROXY_CONFIG_PATH, 'r') as f:
-                cfg = json.load(f)
-            key_columns = cfg.get('key_columns', ['owner'])
-            proxy_map = cfg.get('map', {})
+                logger.warning("Proxy config not found; using direct access")
+                return None
 
-            # Build key from router_info attributes
-            key_parts = []
-            for col in key_columns:
-                val = router_info.get(col, None)
-                key_parts.append((val or '*').lower())
-            key = ':'.join(key_parts)
+            with open(PROXY_CONFIG_PATH, "r", encoding="utf-8") as file:
+                cfg = json.load(file)
 
-            # Try exact match, then fallback to wildcard
+            key_columns = cfg.get("key_columns", ["owner"])
+            proxy_map = cfg.get("map", {})
+            key_parts = [str(router_info.get(col, "*") or "*").lower() for col in key_columns]
+            key = ":".join(key_parts)
+
             proxy_host = proxy_map.get(key)
+            if not proxy_host and len(key_parts) > 1:
+                proxy_host = proxy_map.get(":".join(key_parts[:-1] + ["*"]))
             if not proxy_host:
-                # Try wildcard for last column
-                if len(key_columns) > 1:
-                    wildcard_key = ':'.join(key_parts[:-1] + ['*'])
-                    proxy_host = proxy_map.get(wildcard_key)
-                if not proxy_host:
-                    # Try just first column if all else fails
-                    proxy_host = proxy_map.get(key_parts[0])
+                proxy_host = proxy_map.get(key_parts[0]) if key_parts else None
             if not proxy_host:
-                logger.error(f"No proxy found for key: {key}")
-                raise ProxyMappingError(f"No proxy found for key: {key}")
-            logger.info(f"Proxy resolved for key {key}: {proxy_host}")
-            # Replace ProxyClient with actual proxy client class as needed
-            return proxy_host
-        except (ProxyMappingError,):
-            raise
-        except Exception as e:
-            logger.error(f"Unexpected error in ProxyFactory.get_proxy: {e}")
-            raise ProxyMappingError(f"Unexpected error in ProxyFactory: {e}")
+                proxy_host = proxy_map.get("default") or proxy_map.get("*:*")
+
+            if not proxy_host:
+                return None
+
+            logger.info(f"Using proxy {proxy_host} for key {key}")
+            return ProxyClient(proxy_host)
+        except Exception as exc:
+            logger.error(f"Proxy mapping failed: {exc}")
+            raise ProxyMappingError(f"Proxy mapping failed: {exc}")

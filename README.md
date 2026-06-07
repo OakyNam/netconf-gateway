@@ -9,6 +9,7 @@ A Python-based REST API gateway for multi-vendor NETCONF routers (Alcatel, Junip
 - Normalized REST API endpoints (e.g., `/{device}/get-config`)
 - PostgreSQL integration for device metadata (table/column fully configurable)
 - Dynamic, config-driven client and proxy selection (no hardcoded logic)
+- Unified `/devices/{device}/...` API endpoints that dispatch to the correct vendor client at runtime
 - All mappings (client, proxy, DB) are controlled by config files in `config/`
 - Credentials managed via `.env` and `decouple`
 - Dockerized for deployment
@@ -79,7 +80,8 @@ docker run -p 8000:8000 --env-file .env -v %cd%/config:/app/config netconf-gatew
 > **Note:** The `config/` directory is mounted into the container for dynamic mapping. Adjust the volume path as needed for your environment.
 
 ## API Usage & Extension
-- All endpoints are normalized: `/{device}/get-config`, `/{device}/set-config`, etc.
+- Unified endpoints are available under `/devices/{device}/...` (for example: `/devices/{device}/show-interface`, `/devices/{device}/protocols/bgp`, `/devices/{device}/firewall/rules`).
+- Legacy grouped endpoints remain available under `/routers`, `/interfaces`, `/protocols`, and `/mpls`.
 - The gateway uses DB info (from any table/column, as configured) to select the correct NETCONF client and proxy, with all mapping logic loaded from config files in `config/`.
 - All controllers, factories, and clients are documented with Google-style docstrings and type hints for clarity and onboarding.
 - Logging and error handling are consistent and robust across all modules.
