@@ -30,8 +30,7 @@ def _run_for_device(device: str, action: Callable):
         raise HTTPException(status_code=500, detail=str(exc))
     finally:
         if client is not None:
-            client.close()
-            client.close_ssh()
+            client.cleanup()
 
 
 @router.get("/{device}/show-interface")

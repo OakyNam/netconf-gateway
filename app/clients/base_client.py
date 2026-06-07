@@ -14,6 +14,7 @@ from app.errors import GatewayError
 from app.factories.proxy_factory import ProxyFactory
 
 TRUTHY_VALUES = {"1", "true", "yes", "on"}
+DEFAULT_BGP_NAMESPACE = "http://openconfig.net/yang/bgp"
 
 
 class BaseNCCClient(ABC):
@@ -104,10 +105,17 @@ class BaseNCCClient(ABC):
             self.ssh_client.close()
             self.ssh_client = None
 
+    def cleanup(self) -> None:
+        self.close()
+        self.close_ssh()
+
     def execute_ssh_command(self, command: str) -> str:
         self._connect_ssh()
         if self.ssh_client is None:
             raise GatewayError("SSH session is not available")
+        transport = self.ssh_client.get_transport()
+        if transport is None or not transport.is_active():
+            raise GatewayError("SSH transport is not active")
         _, stdout, stderr = self.ssh_client.exec_command(command)
         output = stdout.read().decode("utf-8", errors="ignore")
         err = stderr.read().decode("utf-8", errors="ignore")
@@ -152,9 +160,7 @@ class BaseNCCClient(ABC):
         self.connect()
         if self.session is None:
             raise GatewayError("NETCONF session is not available")
-        bgp_ns = str(
-            self.router_info.get("bgp_namespace", "http://openconfig.net/yang/bgp")
-        )
+        bgp_ns = str(self.router_info.get("bgp_namespace", DEFAULT_BGP_NAMESPACE))
         filter_xml = f"<bgp xmlns='{bgp_ns}'/>"
         reply = self.session.get(filter=("subtree", filter_xml))
         return str(reply.xml)

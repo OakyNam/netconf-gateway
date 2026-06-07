@@ -27,10 +27,13 @@ def _resolve_config_path() -> str:
 DB_CLIENT_CONFIG_PATH = _resolve_config_path()
 
 
-def _validate_identifier(name: str, label: str) -> str:
-    if not re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", name):
-        raise ConfigNotFoundError(f"Invalid {label} in DB config: {name}")
-    return name
+def _validate_identifier(name: Any, label: str) -> str:
+    if not isinstance(name, str) or not name.strip():
+        raise ConfigNotFoundError(f"Missing {label} in DB config")
+    normalized = name.strip()
+    if normalized.lower() == "none" or not re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", normalized):
+        raise ConfigNotFoundError(f"Invalid {label} in DB config: {normalized}")
+    return normalized
 
 
 _engine = None
@@ -78,8 +81,8 @@ def get_device_info(search_value: Any) -> Optional[Dict[str, Any]]:
         with open(DB_CLIENT_CONFIG_PATH, "r", encoding="utf-8") as file:
             cfg = json.load(file)
 
-        table_name = _validate_identifier(str(cfg.get("table", "")), "table")
-        search_column = _validate_identifier(str(cfg.get("search_column", "")), "search_column")
+        table_name = _validate_identifier(cfg.get("table"), "table")
+        search_column = _validate_identifier(cfg.get("search_column"), "search_column")
         session = get_session()
         db_table = table(table_name)
         db_column = column(search_column)
