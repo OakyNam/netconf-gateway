@@ -32,6 +32,15 @@ class BaseNCCClient(ABC):
         passwd = str(config("ROUTER_PASSWORD"))
         return {"username": user, "password": passwd}
 
+    @staticmethod
+    def _use_relaxed_hostkey_policy() -> bool:
+        return str(config("ROUTER_SSH_AUTO_ADD_HOSTKEY", default="false")).lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
+
     def connect(self) -> None:
         if self.session is not None:
             return
@@ -62,7 +71,11 @@ class BaseNCCClient(ABC):
             return
         try:
             self.ssh_client = paramiko.SSHClient()
-            self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            self.ssh_client.load_system_host_keys()
+            if self._use_relaxed_hostkey_policy():
+                self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            else:
+                self.ssh_client.set_missing_host_key_policy(paramiko.RejectPolicy())
             proxy = self._get_proxy()
             sock = proxy.get_channel(self.host, self.ssh_port) if proxy else None
             auth = self._credentials()
@@ -123,7 +136,10 @@ class BaseNCCClient(ABC):
 
     def get_bgp(self) -> str:
         self.connect()
-        filter_xml = "<bgp xmlns='http://openconfig.net/yang/bgp'/>"
+        bgp_ns = str(
+            self.router_info.get("bgp_namespace", "http://openconfig.net/yang/bgp")
+        )
+        filter_xml = f"<bgp xmlns='{bgp_ns}'/>"
         reply = self.session.get(filter=("subtree", filter_xml))
         return str(reply.xml)
 
